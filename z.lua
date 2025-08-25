@@ -120,20 +120,22 @@ end
 local function fakeLagLoop()
     task.spawn(function()
         while FL.enabled do
-            local delayText = (FL.delay == math.huge) and "∞" or string.format("%.2f", FL.delay)
-            status.Text = "Faking (" .. delayText .. "s)"
-            status.Visible = true
+            -- Always get fresh character + HRP in case of respawn
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if not char or not hrp then
+                task.wait(0.1)
+                continue
+            end
 
             -- LAG PHASE
-            if FL.realChar and FL.hrp then
-                FL.hrp.Anchored = true
-            end
-            task.wait(0.5) -- freeze duration
+            hrp.Anchored = true
+            char:FindFirstChildOfClass("Humanoid").PlatformStand = true -- extra freeze
+            task.wait(0.5)
 
             -- MOVE PHASE
-            if FL.realChar and FL.hrp then
-                FL.hrp.Anchored = false
-            end
+            hrp.Anchored = false
+            char:FindFirstChildOfClass("Humanoid").PlatformStand = false
             local freeTime = math.max(FL.delay - 0.5, 0)
             local startTime = tick()
             while tick() - startTime < freeTime do
@@ -141,9 +143,14 @@ local function fakeLagLoop()
                 task.wait(0.05)
             end
         end
-        -- Reset on stop
-        if FL.realChar and FL.hrp then
-            FL.hrp.Anchored = false
+
+        -- Reset when disabled
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if char and hrp then
+            hrp.Anchored = false
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.PlatformStand = false end
         end
         status.Visible = false
     end)
