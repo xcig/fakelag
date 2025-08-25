@@ -5,78 +5,175 @@ local UserInputService = game:GetService("UserInputService")
 local player           = Players.LocalPlayer
 
 -- Tween helper
-local function createTween(obj, props, duration, style, dir)
-    local info  = TweenInfo.new(
-        duration or 0.4,
-        style    or Enum.EasingStyle.Quart,
-        dir      or Enum.EasingDirection.Out
-    )
-    local tween = TweenService:Create(obj, info, props)
-    tween:Play()
-    return tween
+local function tween(obj, props, time, style, dir)
+    local info  = TweenInfo.new(time or 0.4, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out)
+    local t     = TweenService:Create(obj, info, props)
+    t:Play()
+    return t
 end
 
+-- Build GUI
 local function createGUI()
-    -- Container
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name           = "FakeLagUI"
     screenGui.Parent         = player:WaitForChild("PlayerGui")
     screenGui.IgnoreGuiInset = true
     screenGui.ResetOnSpawn   = false
 
-    -- LOADING LABEL
-    local loading = Instance.new("TextLabel")
-    loading.Name               = "LoadingLabel"
-    loading.Size               = UDim2.new(0, 150, 0, 40)
-    loading.Position           = UDim2.new(0.5, -75, 0.5, -20)
-    loading.BackgroundColor3   = Color3.fromRGB(40, 40, 40)
-    loading.BackgroundTransparency = 0.3
-    loading.TextColor3         = Color3.new(1, 1, 1)
-    loading.Font               = Enum.Font.GothamBold
-    loading.TextSize           = 18
-    loading.Text               = "Loading…"
-    loading.Parent             = screenGui
+    -- Small show button (hidden at start)
+    local showBtn = Instance.new("TextButton", screenGui)
+    showBtn.Name               = "ShowButton"
+    showBtn.Size               = UDim2.new(0, 100, 0, 40)
+    showBtn.Position           = UDim2.new(0.5, -50, 1, -60)
+    showBtn.Text               = "Open FakeLag"
+    showBtn.Font               = Enum.Font.GothamBold
+    showBtn.TextSize           = 16
+    showBtn.BackgroundColor3   = Color3.fromRGB(30, 30, 30)
+    showBtn.TextColor3         = Color3.new(1, 1, 1)
+    showBtn.Visible            = false
 
-    local loadingCorner = Instance.new("UICorner", loading)
-    loadingCorner.CornerRadius = UDim.new(0, 8)
+    local showCorner = Instance.new("UICorner", showBtn)
+    showCorner.CornerRadius = UDim.new(0, 8)
 
-    -- Pulse the loading label
-    local pulsing = true
-    task.spawn(function()
-        while pulsing do
-            createTween(loading, {TextTransparency = 1}, 0.8, Enum.EasingStyle.Sine)
-            createTween(loading, {TextTransparency = 0}, 0.8, Enum.EasingStyle.Sine)
-            task.wait(1.6)
+    -- Main window
+    local mainFrame = Instance.new("Frame", screenGui)
+    mainFrame.Name               = "MainFrame"
+    mainFrame.Size               = UDim2.new(0, 320, 0, 220)
+    mainFrame.Position           = UDim2.new(0.5, -160, 0.5, -110)
+    mainFrame.BackgroundColor3   = Color3.fromRGB(25, 25, 25)
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.Visible            = true
+
+    local frameCorner = Instance.new("UICorner", mainFrame)
+    frameCorner.CornerRadius = UDim.new(0, 12)
+
+    -- Drop shadow
+    local shadow = Instance.new("ImageLabel", mainFrame)
+    shadow.Name            = "Shadow"
+    shadow.Image           = "rbxassetid://1316045217"
+    shadow.BackgroundTransparency = 1
+    shadow.ImageTransparency      = 0.5
+    shadow.ZIndex           = 0
+    shadow.Size             = UDim2.new(1, 20, 1, 20)
+    shadow.Position         = UDim2.new(0, -10, 0, -10)
+
+    -- Title bar (for dragging)
+    local titleBar = Instance.new("Frame", mainFrame)
+    titleBar.Name             = "TitleBar"
+    titleBar.Size             = UDim2.new(1, 0, 0, 36)
+    titleBar.Position         = UDim2.new(0, 0, 0, 0)
+    titleBar.BackgroundTransparency = 1
+    titleBar.ZIndex           = 2
+
+    local titleLabel = Instance.new("TextLabel", titleBar)
+    titleLabel.Size               = UDim2.new(1, -60, 1, 0)
+    titleLabel.Position           = UDim2.new(0, 12, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text               = "FakeLag Control"
+    titleLabel.TextColor3         = Color3.new(1, 1, 1)
+    titleLabel.Font               = Enum.Font.GothamBold
+    titleLabel.TextSize           = 18
+    titleLabel.TextXAlignment     = Enum.TextXAlignment.Left
+    titleLabel.ZIndex             = 2
+
+    local closeBtn = Instance.new("TextButton", titleBar)
+    closeBtn.Name               = "CloseBtn"
+    closeBtn.Size               = UDim2.new(0, 40, 0, 24)
+    closeBtn.Position           = UDim2.new(1, -48, 0, 6)
+    closeBtn.Text               = "✕"
+    closeBtn.Font               = Enum.Font.GothamBold
+    closeBtn.TextSize           = 18
+    closeBtn.BackgroundColor3   = Color3.fromRGB(40, 40, 40)
+    closeBtn.TextColor3         = Color3.new(1, 1, 1)
+    closeBtn.ZIndex             = 2
+
+    local closeCorner = Instance.new("UICorner", closeBtn)
+    closeCorner.CornerRadius = UDim.new(0, 6)
+
+    -- Content
+    local toggleBtn = Instance.new("TextButton", mainFrame)
+    toggleBtn.Name             = "ToggleBtn"
+    toggleBtn.Size             = UDim2.new(0, 280, 0, 40)
+    toggleBtn.Position         = UDim2.new(0.5, -140, 0, 50)
+    toggleBtn.Text             = "FakeLag: OFF"
+    toggleBtn.Font             = Enum.Font.Gotham
+    toggleBtn.TextSize         = 18
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    toggleBtn.TextColor3       = Color3.new(1, 1, 1)
+    toggleBtn.ZIndex           = 2
+
+    local tCorner = Instance.new("UICorner", toggleBtn)
+    tCorner.CornerRadius = UDim.new(0, 8)
+
+    local delayBox = Instance.new("TextBox", mainFrame)
+    delayBox.Name               = "DelayBox"
+    delayBox.Size               = UDim2.new(0, 160, 0, 28)
+    delayBox.Position           = UDim2.new(0.5, -80, 0, 110)
+    delayBox.PlaceholderText    = "Delay (0.1–5s)"
+    delayBox.Text               = "2.0"
+    delayBox.Font               = Enum.Font.Gotham
+    delayBox.TextSize           = 16
+    delayBox.BackgroundColor3   = Color3.fromRGB(35, 35, 35)
+    delayBox.TextColor3         = Color3.new(1, 1, 1)
+    delayBox.ClearTextOnFocus   = false
+    delayBox.ZIndex             = 2
+
+    local dCorner = Instance.new("UICorner", delayBox)
+    dCorner.CornerRadius = UDim.new(0, 6)
+
+    -- Logic variables
+    local fakeLag  = false
+    local delayTime = 2.0
+
+    -- Toggle behavior
+    toggleBtn.MouseButton1Click:Connect(function()
+        fakeLag = not fakeLag
+        toggleBtn.Text = fakeLag and "FakeLag: ON" or "FakeLag: OFF"
+        tween(toggleBtn, {
+            BackgroundColor3 = fakeLag and Color3.fromRGB(0,150,0) or Color3.fromRGB(40,40,40)
+        }, 0.3)
+    end)
+
+    -- Delay input
+    delayBox.FocusLost:Connect(function()
+        local v = tonumber(delayBox.Text)
+        if v and v >= 0.1 and v <= 5 then
+            delayTime = v
+        else
+            delayBox.Text = tostring(delayTime)
         end
     end)
 
-    -- MAIN FRAME (hidden until after loading)
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Name               = "MainFrame"
-    mainFrame.Size               = UDim2.new(0, 300, 0, 200)
-    mainFrame.Position           = UDim2.new(0.5, -150, 0.5, -100)
-    mainFrame.BackgroundColor3   = Color3.fromRGB(25, 25, 25)
-    mainFrame.BackgroundTransparency = 1
-    mainFrame.Visible            = false
-    mainFrame.Parent             = screenGui
+    -- Close button hides mainFrame
+    closeBtn.MouseButton1Click:Connect(function()
+        tween(mainFrame, {Size = UDim2.new(0,0,0,0), BackgroundTransparency = 1}, 0.4, Enum.EasingStyle.Back)
+        task.delay(0.4, function()
+            mainFrame.Visible = false
+            showBtn.Visible  = true
+        end)
+    end)
 
-    local mainCorner = Instance.new("UICorner", mainFrame)
-    mainCorner.CornerRadius = UDim.new(0, 12)
+    -- Show button reveals mainFrame
+    showBtn.MouseButton1Click:Connect(function()
+        showBtn.Visible = false
+        mainFrame.Visible = true
+        mainFrame.Size = UDim2.new(0,0,0,0)
+        mainFrame.BackgroundTransparency = 1
+        tween(mainFrame, {Size = UDim2.new(0,320,0,220), BackgroundTransparency = 0}, 0.5, Enum.EasingStyle.Back)
+    end)
 
-    -- MAKE IT DRAGGABLE
+    -- Drag logic (by TitleBar)
     do
         local dragging, dragInput, dragStart, startPos
         local function update(input)
             local delta = input.Position - dragStart
             mainFrame.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
             )
         end
 
-        mainFrame.InputBegan:Connect(function(input)
+        titleBar.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 then
                 dragging  = true
                 dragStart = input.Position
@@ -89,7 +186,7 @@ local function createGUI()
             end
         end)
 
-        mainFrame.InputChanged:Connect(function(input)
+        titleBar.InputChanged:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseMovement then
                 dragInput = input
             end
@@ -102,133 +199,26 @@ local function createGUI()
         end)
     end
 
-    -- TITLE
-    local title = Instance.new("TextLabel", mainFrame)
-    title.Size               = UDim2.new(1, 0, 0, 40)
-    title.Position           = UDim2.new(0, 0, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text               = "FakeLag Control"
-    title.TextColor3         = Color3.new(1, 1, 1)
-    title.Font               = Enum.Font.GothamBold
-    title.TextSize           = 20
-    title.TextTransparency   = 1
-
-    -- TOGGLE BUTTON
-    local toggleBtn = Instance.new("TextButton", mainFrame)
-    toggleBtn.Size              = UDim2.new(0, 260, 0, 40)
-    toggleBtn.Position          = UDim2.new(0.5, -130, 0, 50)
-    toggleBtn.BackgroundColor3  = Color3.fromRGB(40, 40, 40)
-    toggleBtn.TextColor3        = Color3.new(1, 1, 1)
-    toggleBtn.Font              = Enum.Font.Gotham
-    toggleBtn.TextSize          = 18
-    toggleBtn.Text              = "FakeLag: OFF"
-    toggleBtn.BackgroundTransparency = 1
-
-    local toggleCorner = Instance.new("UICorner", toggleBtn)
-    toggleCorner.CornerRadius = UDim.new(0, 8)
-
-    -- DELAY INPUT
-    local delayInput = Instance.new("TextBox", mainFrame)
-    delayInput.Size                 = UDim2.new(0, 260, 0, 30)
-    delayInput.Position             = UDim2.new(0.5, -130, 0, 100)
-    delayInput.BackgroundColor3     = Color3.fromRGB(35, 35, 35)
-    delayInput.TextColor3           = Color3.new(1, 1, 1)
-    delayInput.Font                 = Enum.Font.Gotham
-    delayInput.TextSize             = 16
-    delayInput.PlaceholderText      = "Lag Delay (sec)"
-    delayInput.Text                 = "2.0"
-    delayInput.ClearTextOnFocus     = false
-    delayInput.BackgroundTransparency = 1
-    delayInput.TextTransparency     = 1
-
-    local delayCorner = Instance.new("UICorner", delayInput)
-    delayCorner.CornerRadius = UDim.new(0, 6)
-
-    -- DESTROY BUTTON
-    local destroyBtn = Instance.new("TextButton", mainFrame)
-    destroyBtn.Size               = UDim2.new(0, 260, 0, 30)
-    destroyBtn.Position           = UDim2.new(0.5, -130, 0, 140)
-    destroyBtn.BackgroundColor3   = Color3.fromRGB(50, 0, 0)
-    destroyBtn.TextColor3         = Color3.new(1, 1, 1)
-    destroyBtn.Font               = Enum.Font.GothamBold
-    destroyBtn.TextSize           = 16
-    destroyBtn.Text               = "Destroy UI"
-    destroyBtn.BackgroundTransparency = 1
-    destroyBtn.TextTransparency   = 1
-
-    local destroyCorner = Instance.new("UICorner", destroyBtn)
-    destroyCorner.CornerRadius = UDim.new(0, 6)
-
-    -- LOGIC
-    local fakeLag   = false
-    local delayTime = 2.0
-
-    toggleBtn.MouseButton1Click:Connect(function()
-        fakeLag = not fakeLag
-        toggleBtn.Text = fakeLag and "FakeLag: ON" or "FakeLag: OFF"
-        createTween(toggleBtn, {
-            BackgroundTransparency = fakeLag and 0 or 1,
-            BackgroundColor3       = fakeLag and Color3.fromRGB(0,150,0) or Color3.fromRGB(40,40,40)
-        }, 0.3)
-    end)
-
-    delayInput.FocusLost:Connect(function()
-        local v = tonumber(delayInput.Text)
-        if v and v >= 0.1 and v <= 5 then
-            delayTime = v
-        else
-            delayInput.Text = tostring(delayTime)
-        end
-    end)
-
-    destroyBtn.MouseButton1Click:Connect(function()
-        pulsing = false
-        createTween(mainFrame, {BackgroundTransparency = 1, Size = UDim2.new(0,0,0,0)}, 0.5, Enum.EasingStyle.Back)
-        task.delay(0.5, function()
-            screenGui:Destroy()
-        end)
-    end)
-
-    -- FakeLag coroutine
+    -- Cosmetic FakeLag coroutine
     task.spawn(function()
         while true do
             task.wait(0.05)
-            if fakeLag then
-                local char = player.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    local root = char.HumanoidRootPart
-                    root:SetNetworkOwner(nil)
-                    root.Velocity = Vector3.new(math.random(-10,10), 0, math.random(-10,10))
-                    task.wait(delayTime)
-                    root:SetNetworkOwner(player)
-                end
+            if fakeLag and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local root = player.Character.HumanoidRootPart
+                root:SetNetworkOwner(nil)
+                root.Velocity = Vector3.new(
+                    math.random(-10,10), 0, math.random(-10,10)
+                )
+                task.wait(delayTime)
+                root:SetNetworkOwner(player)
             end
         end
     end)
 
-    -- AFTER 2s → SHOW MAINFRAME
-    task.delay(2, function()
-        pulsing = false
-        createTween(loading, {TextTransparency = 1, BackgroundTransparency = 1}, 0.4)
-        task.delay(0.4, function()
-            loading:Destroy()
-            mainFrame.Visible = true
-            mainFrame.Size               = UDim2.new(0,0,0,0)
-            mainFrame.BackgroundTransparency = 1
-
-            createTween(mainFrame, {Size = UDim2.new(0,300,0,200), BackgroundTransparency = 0}, 0.5, Enum.EasingStyle.Back)
-
-            -- fade in children
-            for _, v in ipairs(mainFrame:GetChildren()) do
-                if v:IsA("TextButton") or v:IsA("TextLabel") or v:IsA("TextBox") then
-                    createTween(v, {
-                        TextTransparency       = 0,
-                        BackgroundTransparency = 0
-                    }, 0.4, Enum.EasingStyle.Quad)
-                end
-            end
-        end)
-    end)
+    -- Animate entrance
+    mainFrame.Size               = UDim2.new(0,0,0,0)
+    mainFrame.BackgroundTransparency = 1
+    tween(mainFrame, {Size = UDim2.new(0,320,0,220), BackgroundTransparency = 0}, 0.5, Enum.EasingStyle.Back)
 end
 
 createGUI()
